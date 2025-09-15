@@ -1,0 +1,6 @@
+[
+  {"model":"authz.businesselement","pk":1,"fields":{"code":"users","name":"Users"}},
+  {"model":"authz.businesselement","pk":2,"fields":{"code":"goods","name":"Goods"}},
+  {"model":"authz.businesselement","pk":3,"fields":{"code":"orders","name":"Orders"}},
+  {"model":"authz.businesselement","pk":4,"fields":{"code":"rules","name":"Rules"}}
+]

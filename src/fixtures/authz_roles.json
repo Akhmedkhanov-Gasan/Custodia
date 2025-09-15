@@ -1,0 +1,5 @@
+[
+  {"model":"authz.role","pk":1,"fields":{"code":"admin","name":"Admin"}},
+  {"model":"authz.role","pk":2,"fields":{"code":"manager","name":"Manager"}},
+  {"model":"authz.role","pk":3,"fields":{"code":"user","name":"User"}}
+]

@@ -1,0 +1,30 @@
+[
+  {"model":"authz.accessrolerule","pk":1,"fields":{
+    "role":1,"element":1,
+    "read_permission":true,"read_all_permission":true,
+    "create_permission":true,
+    "update_permission":true,"update_all_permission":true,
+    "delete_permission":true,"delete_all_permission":true
+  }},
+  {"model":"authz.accessrolerule","pk":2,"fields":{
+    "role":1,"element":2,
+    "read_permission":true,"read_all_permission":true,
+    "create_permission":true,
+    "update_permission":true,"update_all_permission":true,
+    "delete_permission":true,"delete_all_permission":true
+  }},
+  {"model":"authz.accessrolerule","pk":3,"fields":{
+    "role":1,"element":3,
+    "read_permission":true,"read_all_permission":true,
+    "create_permission":true,
+    "update_permission":true,"update_all_permission":true,
+    "delete_permission":true,"delete_all_permission":true
+  }},
+  {"model":"authz.accessrolerule","pk":4,"fields":{
+    "role":1,"element":4,
+    "read_permission":true,"read_all_permission":true,
+    "create_permission":true,
+    "update_permission":true,"update_all_permission":true,
+    "delete_permission":true,"delete_all_permission":true
+  }}
+]
