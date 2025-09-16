@@ -31,6 +31,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.accounts.middleware.JWTAuthMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -62,7 +63,7 @@ DATABASES = {
     }
 }
 
-LANGUAGE_CODE = "ru-ru"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Stockholm"
 USE_I18N = USE_TZ = True
 
@@ -71,9 +72,34 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "apps.accounts.auth.DjangoUserAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
 }
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Custodia API",
     "VERSION": "0.1.0",
+}
+
+JWT_SECRET = os.getenv("JWT_SECRET", "dev-jwt-secret")
+JWT_ALG = os.getenv("JWT_ALG", "HS256")
+JWT_ACCESS_TTL_MIN = int(os.getenv("JWT_ACCESS_TTL_MIN", "15"))
+JWT_REFRESH_TTL_DAYS = int(os.getenv("JWT_REFRESH_TTL_DAYS", "7"))
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "%(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+    },
+    "loggers": {
+        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "apps.accounts.middleware": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
+    },
+    "root": {"handlers": ["console"], "level": "WARNING"},
 }
