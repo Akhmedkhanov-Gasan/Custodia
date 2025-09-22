@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-custodia}
+      POSTGRES_USER: ${POSTGRES_USER:-custodia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-custodia}
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.prod
+    command: bash -lc "python src/manage.py migrate && python src/manage.py runserver 0.0.0.0:8000"
+    ports: ["8000:8000"]
+    depends_on: [db]
+
+volumes:
+  pgdata:

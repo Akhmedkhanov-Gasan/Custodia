@@ -1,0 +1,17 @@
+# 1) Login as admin
+curl -X POST http://127.0.0.1:8000/api/auth/login -H "Content-Type: application/json" -d "{ \"email\":\"admin@local.com\",\"password\":\"secret123\" }"
+
+# 2) Login as user
+curl -X POST http://127.0.0.1:8000/api/auth/login -H "Content-Type: application/json" -d "{ \"email\":\"user@local.com\",\"password\":\"secret123\" }"
+
+# 3) Login as manager
+curl -X POST http://127.0.0.1:8000/api/auth/login -H "Content-Type: application/json" -d "{ \"email\":\"manager@local.com\",\"password\":\"secret123\" }"
+
+# 4) Create goods under user/manager (подставь токены)
+curl -X POST http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_USER>" -H "Content-Type: application/json" -d "{ \"title\":\"Apple\" }"
+curl -X POST http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_MANAGER>" -H "Content-Type: application/json" -d "{ \"title\":\"Orange\" }"
+
+# 5) Check lists / patch / delete (замени ID и токены)
+curl -X GET http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_USER>"
+curl -X GET http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_MANAGER>"
+curl -X DELETE http://127.0.0.1:8000/api/mock/goods/<ID> -H "Authorization: Bearer <ACCESS_ADMIN>"

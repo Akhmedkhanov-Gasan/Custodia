@@ -21,11 +21,7 @@ def get_user_role(user) -> Optional[str]:
 
 
 class RolePermission(BasePermission):
-    """
-    Проверяет доступ по таблице access_roles_rules.
-    Требует атрибут view.business_element_code.
-    """
-
+    """RBAC permission that checks AccessRoleRule for a given business_element_code and enforces owner checks."""
     message = "Forbidden by access rules."
 
     def has_permission(self, request, view) -> bool:

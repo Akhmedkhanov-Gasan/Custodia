@@ -7,6 +7,7 @@ from .utils import decode_token
 User = get_user_model()
 
 class JWTAuthMiddleware(MiddlewareMixin):
+    """Parses 'Authorization: Bearer <JWT>', validates token and populates request.user."""
     def process_request(self, request):
         auth = request.META.get("HTTP_AUTHORIZATION") or ""
         if not auth.lower().startswith("bearer "):

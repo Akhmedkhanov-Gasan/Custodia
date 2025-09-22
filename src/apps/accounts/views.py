@@ -74,7 +74,6 @@ class LoginView(APIView):
         if not user or not user.is_active:
             return Response({"detail": "Неверные учетные данные."}, status=400)
 
-        # 1) пытаемся по Credential (bcrypt)
         ok = False
         cred = getattr(user, "cred", None)
         if cred and cred.password_hash:
@@ -83,7 +82,6 @@ class LoginView(APIView):
             except Exception:
                 ok = False
 
-        # 2) фоллбэк: стандартный пароль Django (PBKDF2)
         if not ok and user.password:
             try:
                 ok = user.check_password(password)

@@ -1,131 +1,168 @@
-````markdown
-# Custodia — Authentication and Authorization System
 
-## Overview
+---
 
-Custodia is a backend application that demonstrates a custom implementation of authentication and authorization** mechanisms.
-The goal is to show how login, logout, session/token management, and role-based access control (RBAC) can be built without relying on "out-of-the-box" solutions.
+# Custodia
 
-The project is designed for portfolio/demo purposes and illustrates the difference between authentication (who you are)** and **authorization (what you are allowed to do)**.
+Educational backend project on **Django 5 + DRF**, where authentication and authorization are implemented **from scratch** (without djoser/simplejwt). The goal is to demonstrate understanding of JWT, middleware, sessions/tokens, and RBAC with ownership checks.
 
-## Features
+## Key Features
 
-- User management
-  - Registration with email and password (stored securely with bcrypt)
-  - Login with JWT access & refresh tokens
-  - Logout with token invalidation
-  - Update profile information
-  - Soft-delete accounts (`is_active = False`)
-- Authentication
-  - JWT-based login/refresh system
-  - Middleware to parse `Authorization: Bearer <token>` and attach `request.user`
-- Authorization
-  - Role-based access control (RBAC) with fine-grained permissions
-  - Ownership rules: users can only modify their own resources unless granted `*_all` permissions
-  - Admin API for managing roles, elements, and rules
-  - Standard error handling:
-    - `401 Unauthorized` for unauthenticated requests
-    - `403 Forbidden` for authenticated users without required permissions
-- Mock resources
-  - Example endpoints for `goods` and `orders` to demonstrate permission checks
-- API schema
-  - OpenAPI 3.0 documentation with Swagger UI / ReDoc
+* **Authentication**
 
-## Database Schema
+   * Registration via email + password (bcrypt)
+   * Login → `access` and `refresh` JWT (PyJWT)
+   * Refreshing access tokens
+   * Logout (client-side)
+   * Profile `/users/me` (GET, PATCH, DELETE soft delete: `is_active=false`)
+   * Custom middleware: parses `Authorization: Bearer …`, validates JWT, assigns `request.user`
+   * Custom DRF authenticator: trusts the user set by middleware
 
-Main entities:
+* **Authorization (RBAC + owner)**
 
-- `users` — application users (email, password, profile info, is_active flag)
-- `roles` — user roles (`admin`, `manager`, `user`, `guest`)
-- `business_elements` — application resources (`users`, `goods`, `orders`, `rules`)
-- `access_roles_rules` — mapping of permissions per role and element:
-  - `read_permission`, `read_all_permission`
-  - `create_permission`
-  - `update_permission`, `update_all_permission`
-  - `delete_permission`, `delete_all_permission`
+   * Tables: `roles`, `business_elements`, `access_roles_rules`
+   * Flags: `read(_all)`, `create`, `update(_all)`, `delete(_all)`
+   * Custom DRF permission `RolePermission`, enforces ownership for update/delete
+   * Admin API: CRUD for roles/elements/rules (only available to role `admin`)
 
-Example rules:
-- Admin — full access to all resources
-- Manager — read all, modify only own objects
-- User — read and modify only own objects
-- Guest — no access
+* **Mock resources to demo 200/401/403**
 
-## Endpoints
+   * `Goods` and `Orders` with `owner` field
+   * Lists are filtered: without `read_all`, users only see their own
+   * CRUD is RBAC-controlled
 
-### Authentication
-- `POST /api/auth/register` — create new account
-- `POST /api/auth/login` — get access & refresh tokens
-- `POST /api/auth/refresh` — refresh tokens
-- `POST /api/auth/logout` — invalidate session
-- `GET /api/users/me` — fetch current user
-- `PATCH /api/users/me` — update current user
-- `DELETE /api/users/me` — deactivate account
+* **Docs and utilities**
 
-### Authorization (admin only)
-- `GET /api/authz/roles`, `POST /api/authz/roles`
-- `GET /api/authz/elements`, `POST /api/authz/elements`
-- `GET /api/authz/rules`, `POST /api/authz/rules`
-
-### Mock resources
-- `GET /api/mock/goods`, `POST /api/mock/goods`
-- `GET /api/mock/goods/{id}`, `PATCH /api/mock/goods/{id}`, `DELETE /api/mock/goods/{id}`
-- `GET /api/mock/orders`, `POST /api/mock/orders`
-- `GET /api/mock/orders/{id}`, `PATCH /api/mock/orders/{id}`, `DELETE /api/mock/orders/{id}`
-
-## Installation
-
-### Requirements
-- Python 3.12+
-- Docker & Docker Compose
-- PostgreSQL 15
-
-### Setup
-```bash
-git clone https://github.com/your-username/custodia.git
-cd custodia
-cp .env.example .env
-docker compose up --build
-````
-
-### Apply migrations & load fixtures
-
-```bash
-docker compose exec web python manage.py migrate
-docker compose exec web python manage.py loaddata fixtures/initial_data.json
-```
-
-## Usage
-
-### Example demo flow
-
-1. Register two users (`user` and `manager`)
-2. Assign roles via admin API
-3. Create goods/orders as both users
-4. Test different permissions:
-
-   * `user` sees only their goods
-   * `manager` sees all goods but can update only own
-   * `admin` can delete any goods
-   * unauthenticated request → `401`
-
-### API Docs
-
-After starting the server, open:
-
-* Swagger UI: `http://localhost:8000/api/schema/swagger/`
-* ReDoc: `http://localhost:8000/api/schema/redoc/`
+   * OpenAPI: `/api/docs/` (Swagger), `/api/redoc/`
+   * Fixtures for roles/elements/rules
+   * Command `seed_demo` to populate demo users and data
+   * Pytest smoke tests (auth + RBAC)
+   * pre-commit: ruff, black, isort
 
 ## Tech Stack
 
-* Django 5 + DRF
-* PostgreSQL 15
-* bcrypt (password hashing)
-* PyJWT (token handling)
-* Docker Compose
-* drf-spectacular (API docs)
-* pytest + pytest-django (tests)
-* black, isort, ruff (code style)
+Python 3.12, Django 5, DRF, PyJWT, bcrypt, drf-spectacular, PostgreSQL (prod), SQLite (dev), Docker Compose.
+
+## Architecture
+
+```
+src/
+apps/
+  accounts/   # registration, login, JWT, profile, middleware, DRF auth backend
+  authz/      # Role, BusinessElement, AccessRoleRule, permissions, admin API
+  core/       # base abstractions (TimeStampedModel, OwnedModel), commands
+  mock/       # Good, Order + CRUD
+custodia/     # settings (base/dev/prod), urls
+fixtures/     # roles/elements/rules
+tests/        # pytest
+```
+
+### Access model (in a nutshell)
+
+* User role is stored in `Profile.role` (FK to `Role`).
+* For each `(role, business_element)` pair, there’s a row in `access_roles_rules`.
+* Without `*_all` flags, access to other users’ objects is denied (checked by `owner_id`).
+
+## Quickstart (dev, SQLite)
+
+```bash
+# select dev settings
+export DJANGO_SETTINGS_MODULE=custodia.settings.dev  # Windows: $env:DJANGO_SETTINGS_MODULE="custodia.settings.dev"
+
+pip install -r requirements.txt
+python src/manage.py migrate
+
+# load fixtures for roles/elements/rules
+python src/manage.py loaddata \
+  src/fixtures/authz_roles.json \
+  src/fixtures/authz_elements.json \
+  src/fixtures/authz_rules_admin_all.json \
+  src/fixtures/authz_rules_user_manager.json \
+  src/fixtures/authz_rules_orders_user_manager.json
+
+# demo users and data (admin/user/manager, password: secret123)
+python src/manage.py seed_demo
+
+python src/manage.py runserver 0.0.0.0:8000
+```
+
+Open:
+
+* Swagger: [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
+* ReDoc: [http://127.0.0.1:8000/api/redoc/](http://127.0.0.1:8000/api/redoc/)
+* Admin: [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+
+## Run in Docker (prod, Postgres)
+
+Files: `Dockerfile`, `compose.yaml`, `.env.prod` (contains `DJANGO_SETTINGS_MODULE=custodia.settings.prod` and `POSTGRES_*`).
+
+```bash
+docker compose --env-file .env.prod up --build
+# then inside the web container:
+docker compose exec web bash -lc "python src/manage.py loaddata \
+  src/fixtures/authz_roles.json \
+  src/fixtures/authz_elements.json \
+  src/fixtures/authz_rules_admin_all.json \
+  src/fixtures/authz_rules_user_manager.json \
+  src/fixtures/authz_rules_orders_user_manager.json && \
+  python src/manage.py seed_demo"
+```
+
+## Demo scenario (RBAC, paste as Raw in Postman)
+
+```bash
+# login (admin / user / manager)
+curl -X POST http://127.0.0.1:8000/api/auth/login -H "Content-Type: application/json" -d '{"email":"admin@local.com","password":"secret123"}'
+curl -X POST http://127.0.0.1:8000/api/auth/login -H "Content-Type: application/json" -d '{"email":"user@local.com","password":"secret123"}'
+curl -X POST http://127.0.0.1:8000/api/auth/login -H "Content-Type: application/json" -d '{"email":"manager@local.com","password":"secret123"}'
+
+# create goods as user and manager
+curl -X POST http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_USER>" -H "Content-Type: application/json" -d '{"title":"Apple"}'
+curl -X POST http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_MANAGER>" -H "Content-Type: application/json" -d '{"title":"Orange"}'
+
+# user sees only their own
+curl -X GET http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_USER>"
+
+# manager sees all, but can update only their own
+curl -X GET http://127.0.0.1:8000/api/mock/goods -H "Authorization: Bearer <ACCESS_MANAGER>"
+curl -X PATCH http://127.0.0.1:8000/api/mock/goods/<ID_MANAGER_GOOD> -H "Authorization: Bearer <ACCESS_MANAGER>" -H "Content-Type: application/json" -d '{"title":"ManagerOwn"}'
+curl -X PATCH http://127.0.0.1:8000/api/mock/goods/<ID_USER_GOOD> -H "Authorization: Bearer <ACCESS_MANAGER>" -H "Content-Type: application/json" -d '{"title":"Nope"}'  # 403
+
+# admin can delete anything
+curl -X DELETE http://127.0.0.1:8000/api/mock/goods/<ANY_ID> -H "Authorization: Bearer <ACCESS_ADMIN>"
+```
+
+## Endpoints
+
+Auth:
+`POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`
+`GET|PATCH|DELETE /api/auth/users/me`
+
+Mock:
+`GET|POST /api/mock/goods`, `GET|PATCH|DELETE /api/mock/goods/{id}`
+`GET|POST /api/mock/orders`, `GET|PATCH|DELETE /api/mock/orders/{id}`
+
+AuthZ admin (admin role only):
+`GET|POST /api/authz/roles`, `GET|PATCH|DELETE /api/authz/roles/{id}`
+`GET|POST /api/authz/elements`, `GET|PATCH|DELETE /api/authz/elements/{id}`
+`GET|POST /api/authz/rules`, `GET|PATCH|DELETE /api/authz/rules/{id}`
+
+## Tests & Code Quality
+
+```bash
+pytest -q
+ruff check src
+black src && isort src
+pre-commit install
+```
+
+## Notes
+
+* Users created in Django admin won’t automatically get usable credentials. To log in, create via `/register` or run `seed_demo`.
+* Role comes from `Profile.role`. `is_staff`/`is_superuser` only affect Django Admin, not RBAC for mock resources.
+* Unauthenticated → 401; authenticated without permissions → 403.
 
 ## License
 
-MIT License
+MIT
+
+---
